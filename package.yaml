@@ -1,0 +1,49 @@
+name:                htgl
+version:             0.1.0.0
+github:              "maugier/htgl"
+license:             BSD3
+author:              "Maxime Augier"
+maintainer:          "max@xolus.net"
+copyright:           "2019 Maxime Augier"
+
+extra-source-files:
+- README.md
+- ChangeLog.md
+
+# Metadata used when publishing your package
+# synopsis:            Short description of your package
+# category:            Web
+
+# To avoid duplicated efforts in documentation and dealing with the
+# complications of embedding Haddock markup inside cabal files, it is
+# common to point users to the README.md file.
+description:         Please see the README on GitHub at <https://github.com/maugier/htgl#readme>
+
+dependencies:
+- base >= 4.7 && < 5
+- pipes >= 4.3 && < 4.4
+
+library:
+  source-dirs: src
+
+executables:
+  htgl-exe:
+    main:                Main.hs
+    source-dirs:         app
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - htgl
+
+tests:
+  htgl-test:
+    main:                Spec.hs
+    source-dirs:         test
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - htgl
