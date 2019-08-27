@@ -22,6 +22,8 @@ description:         Please see the README on GitHub at <https://github.com/maug
 dependencies:
 - base >= 4.7 && < 5
 - pipes >= 4.3 && < 4.4
+- text >= 1.2 && < 1.3
+- free >= 5.1 && < 5.2
 
 library:
   source-dirs: src
