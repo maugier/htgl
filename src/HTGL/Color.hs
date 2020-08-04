@@ -2,11 +2,13 @@
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 module HTGL.Color
     ( Style
     , Colored
     , Colorful
+    , Styling
     , style
     , bold, thin
     , black, blue, green, cyan, red, magenta, yellow, white
@@ -14,6 +16,8 @@ module HTGL.Color
     , chunks
     , cshow
     , colorful
+    , styling
+    , withStyle
     ) where
 
 import Control.Arrow (first)
@@ -41,17 +45,17 @@ style s (Colored t) = Colored (Free (Coloring [(s, t)]))
 color :: Color8 -> Style
 color c = Style (Last (Just c)) (Last Nothing)
 
-bold = style (Style (Last Nothing) (Last (Just True)))
-thin = style (Style (Last Nothing) (Last (Just False)))
+bold = (Style (Last Nothing) (Last (Just True)))
+thin = (Style (Last Nothing) (Last (Just False)))
 
-black = style (color Black)
-blue = style (color Blue)
-green = style (color Green)
-cyan = style (color Cyan)
-red = style (color Red)
-magenta = style (color Magenta)
-yellow = style (color Yellow)
-white = style (color White)
+black = color Black
+blue = color Blue
+green = color Green
+cyan = color Cyan
+red = color Red
+magenta = color Magenta
+yellow = color Yellow
+white = color White
 
 newtype Coloring t = Coloring [(Style, t)]
     deriving (Show, Functor)
@@ -65,15 +69,21 @@ instance Show1 Coloring where
         f2 = liftShowList sp lp
 
 instance Semigroup (Colored s) where
+    -- not sure if this is smart or not
+    -- Colored (Free (Coloring as)) <> Colored (Free (Coloring bs)) = Colored (Free (Coloring (as ++ bs)))
     Colored a <> Colored b = Colored (Free (Coloring [(mempty,a),(mempty,b)]))
 
 instance Monoid (Colored s) where
     mempty = Colored (Free (Coloring []))
 
+withStyle :: s -> Style -> Colored s
+withStyle s style = Colored (Free (Coloring [(style,Pure s)]))
+
 coloredLike :: Colored s -> Colored s -> Colored s
 coloredLike s (Colored (Pure _)) = s
 coloredLike s (Colored (Free (Coloring []))) = s
 coloredLike (Colored s) (Colored (Free (Coloring ((st,_):_)))) = Colored (Free (Coloring [(st,s)]))
+
 
 chunks :: Colored s -> [(Style, s)]
 chunks (Colored (Pure s)) = [(mempty, s)]
@@ -84,6 +94,12 @@ instance IsString s => IsString (Colored s) where
 
 class Colorful s where
     colorful :: s -> Colored Text
+
+class Styling s where
+    styling :: s -> Style
+
+instance (Styling s, Show s) => Colorful s where
+    colorful s = fromString (show s) `withStyle` styling s
 
 instance Colorful (Colored Text) where
     colorful = id
