@@ -1,8 +1,20 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE FlexibleInstances #-}
 
-module HTGL.Color where
+module HTGL.Color
+    ( Style
+    , Colored
+    , Colorful
+    , style
+    , bold, thin
+    , black, blue, green, cyan, red, magenta, yellow, white
+    , coloredLike
+    , chunks
+    , cshow
+    , colorful
+    ) where
 
 import Control.Arrow (first)
 import Control.Monad.Free
@@ -44,7 +56,7 @@ white = style (color White)
 newtype Coloring t = Coloring [(Style, t)]
     deriving (Show, Functor)
 
-newtype Colored s = Colored (Free Coloring s)
+newtype Colored s = Colored { unColored :: (Free Coloring s) }
     deriving (Show, Functor, Applicative, Monad)
 
 instance Show1 Coloring where
@@ -73,6 +85,8 @@ instance IsString s => IsString (Colored s) where
 class Colorful s where
     colorful :: s -> Colored Text
 
+instance Colorful (Colored Text) where
+    colorful = id
 
 cshow :: Show s => s -> Colored Text
 cshow = fromString . show
