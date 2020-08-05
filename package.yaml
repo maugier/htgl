@@ -26,9 +26,12 @@ dependencies:
 - free >= 5.1 && < 5.2
 - mtl >= 2.2 && < 2.3
 - random >= 1.1 && < 2
+- ansi-terminal
 - containers
 - lens
 - MonadRandom
+- random-shuffle
+- mmorph
 
 library:
   source-dirs: src

@@ -13,6 +13,10 @@ import Pipes.Internal
 type Time = Integer
 
 newtype Player = Player Text
+    deriving (Show, Eq, Ord)
+
+instance Colorful Player where
+    colorful (Player name) = name `withStyle` (bold<>green)
 
 data Block = Forever
            | Timeout Time
@@ -36,8 +40,8 @@ tell p = Interactive . lift . respond . (Just p,) . colorful
 event :: Block -> Interactive Event
 event = Interactive . lift . request
 
-players :: Interactive [Player]
-players = Interactive ask
+allPlayers :: Interactive [Player]
+allPlayers = Interactive ask
 
 within :: Time -> a -> Interactive a -> Interactive a
 within deadline timeout (Interactive (ReaderT action)) = Interactive (ReaderT (\r -> (trap deadline +>> action r))) where

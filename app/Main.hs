@@ -1,6 +1,7 @@
 module Main where
 
-import Lib
+import HTGL.Interactive
+import HTGL.Game.Citadels
+import HTGL.Color.ANSI
 
-main :: IO ()
-main = someFunc
+main = undefined
