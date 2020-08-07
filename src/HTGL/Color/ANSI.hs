@@ -22,12 +22,14 @@ styleToSGR (Style (Last color) (Last bold)) = [SetColor Foreground (g bold) (f c
     g (Just True) = Vivid
     g _ = Dull
 
-cprint :: Colorful t => t -> IO ()
-cprint x = do
-    let cks = (chunks . colorful) x
-    forM_ cks $ \(style,text) -> do
+colorPutStrLn :: Colored Text -> IO ()
+colorPutStrLn x = do
+    forM_ (chunks x) $ \(style,text) -> do
         setSGR . styleToSGR $ style
         Data.Text.IO.putStr text 
     setSGR [Reset]
     putStrLn ""
+
+cprint :: Colorful t => t -> IO ()
+cprint = colorPutStrLn . colorful
     

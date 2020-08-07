@@ -21,7 +21,7 @@ instance Colorful Player where
 data Block = Forever
            | Timeout Time
 
-data Event = Event Time (Maybe (Player, Text))
+data Event = Event { eventTime :: Time, eventData :: (Maybe (Player, Text)) }
 
 type Announce = (Maybe Player, Colored Text)
 
@@ -30,6 +30,9 @@ type IProxy a = Proxy Block Event () Announce Identity a
 newtype Interactive a = Interactive { runInteractive :: ReaderT [Player] (Proxy Block Event () Announce Identity) a }
     deriving (Functor, Applicative, Monad)
 
+
+class Playable a where
+    readMove :: Text -> Maybe a 
 
 announce :: Colorful a => a -> Interactive ()
 announce = Interactive . lift . respond . (Nothing,) . colorful
