@@ -44,7 +44,7 @@ import System.Random (StdGen)
 -- This is text and not colored text because we may want to test it for equality
 type GameError = Text
 
-newtype Play a = Play { runPlay' :: RandT StdGen (ExceptT GameError Interactive) a }
+newtype Play a = Play { runPlay' :: ExceptT GameError (RandT StdGen Interactive) a }
     deriving (Functor, Applicative, Monad, MonadRandom)
 
 
@@ -56,7 +56,10 @@ liftInteractive :: Interactive a -> Play a
 liftInteractive = Play . lift . lift
 
 runPlay :: Play () -> StdGen -> Interactive ()
-runPlay g gen = runExceptT (fst <$> runRandT (runPlay' g) gen) >>= either (I.announce . (`withStyle` red)) return
+--runPlay g gen = runExceptT (fst <$> runRandT (runPlay' g) gen) >>= either (I.announce . (`withStyle` red)) return
+runPlay g gen = runRNG . runErrors . runPlay' $ g where
+    runErrors = (>>= either (lift . I.announce . (`withStyle` red)) return) . runExceptT
+    runRNG = (fst <$>) . (`runRandT` gen)
 
 class (Monad m, MonadRandom m) => MonadPlay m where
     raise      :: Text -> m a
