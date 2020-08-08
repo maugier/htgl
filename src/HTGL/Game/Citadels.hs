@@ -53,6 +53,7 @@ data Role = Assassin
           | Condottiere
           deriving (Show, Read, Eq, Ord, Enum, Bounded)
 
+
 -- Some role cards, but not all, bear a specific color.
 roleColor :: Role -> Maybe Color
 roleColor King = Just Yellow
@@ -166,7 +167,7 @@ data PlayerData = PlayerData {
 
 $(makeLenses ''PlayerData)
 
-
+-- A player initializes with no role, no cards and no gold.
 startingPlayer = PlayerData Nothing [] [] 0
 
 -- In addition to player data, the game also has a current turn leader (the king)
@@ -175,7 +176,10 @@ data GameData = GameData {
     _players :: M.Map Player PlayerData,
     _currentKing :: Player,
     _firstFinished :: Maybe Player,
-    _drawPile :: [Card]
+    _drawPile :: [Card],
+    _discardPile :: [Card],
+    _assassinVictim :: Maybe Role,
+    _thiefVictim :: Maybe Role
 } deriving (Show)
 
 
@@ -190,13 +194,14 @@ every = [minBound .. maxBound]
 
 {- Game setup, and victory conditions -}
 
--- In the initial state, players have empty hands, no gold and no role.
+-- We initialize the game data by creating a map of starting players,
+-- and a shuffled deck of cards.
 gameSetup :: Play GameData
 gameSetup = do 
     pnames <- allPlayers
     let players = M.fromList ((,startingPlayer) <$> pnames)
     drawPile <- shuffle deck
-    return $ GameData players (head pnames) Nothing drawPile
+    return $ GameData players (head pnames) Nothing drawPile [] Nothing Nothing
 
 --The game is over when any player has 8 cards on the table at the end of a turn
 isGameOver :: Game Bool
@@ -307,13 +312,44 @@ reveal who = do
 
     
 
+specialAction :: Role -> Game ()
+specialAction Assassin = do
+    say "Who do you want to kill ?"
+    target <- choose (every \\ [Assassin])
+    announce $ "The " <> Assassin <> " kills the " <> target <> "!"
+    assassinVictim .= target
+
+specialAction Thief = do
+    say "Who do you want to steal from ?"
+    target <- choose (every \\ [Assassin,Thief])
+    announce $ "The " <> Thief <> " steals from the " <> target <> "!"
+    thiefVictim .= target
+specialAction Wizard = do
+    say "Do you want to discard or exchange ?"
+    act <- choose ["discard","exchange"]
+    case act of
+        "discard" -> _
+        "exchange" -> _
+
+
+phase2Turn :: Role -> Player -> Game ()
+phase2Turn = undefined
+
 phase2 :: Game ()
 phase2 = do
 
-    announce "Action phase starts,"
+    announce "Action phase starts!"
 
-    assassin <- reveal Assassin
-    undefined
+    forM_ every $ \role -> do
+        player <- reveal role
+
+        case player of
+            Nothing -> return Nothing
+            Just player -> phase2Turn role player
+    
+
+    
+
     
 
 -- A single game turn
@@ -326,6 +362,10 @@ turn = do
 
     phase1
     phase2
+    
+    -- Reset the turn-specific data
+    assassinVictim .= Nothing
+    thiefVictim .= Nothing
 
         
 
