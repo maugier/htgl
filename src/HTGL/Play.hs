@@ -13,6 +13,7 @@ Implements the Play monad, used to describe game rules
 
 module HTGL.Play 
     ( GameError
+    , MonadPlay
     , Play
     , Player
     , runPlay

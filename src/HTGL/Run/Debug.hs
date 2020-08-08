@@ -54,7 +54,7 @@ debugGameWithGen g gen = do
     players <- (Player . pack <$>) <$> repeatRead
 
     let g' = runPlay g gen
-    let gameProxy = unsafeHoist (return . runIdentity) (runReaderT (runInteractive g') players)
+    let gameProxy = unsafeHoist (return . runIdentity) (runReaderT (runInteractive g') (Nothing, players))
 
     let process = (queryConsole >\\ gameProxy //> displayConsole)
 
