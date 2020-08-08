@@ -8,10 +8,11 @@ module HTGL.Interactive
     , Event(..)
     , Announce
     , Interactive
-    , announce, tell, say
+    , send
+    , say
+    , withActive
     , event
-    , withPlayer, public
-    , allPlayers, activePlayer, lookupPlayer
+    , allPlayers, activePlayer
     , within
     , runInteractive
     ) where
@@ -43,7 +44,7 @@ type Time = Integer
 
 -- A player has a name and possibly a color
 newtype Player = Player { playerName :: Text }
-    deriving (Show, Eq, Ord)
+    deriving (Show, Read, Eq, Ord)
 
 instance Colorful Player where
     colorful (Player name) = name `withStyle` (bold<>green)
@@ -72,30 +73,9 @@ newtype Interactive a = Interactive { runInteractive :: ReaderT (Maybe Player, [
 send :: Colorful a => Maybe Player -> a -> Interactive ()
 send t = Interactive . lift . respond . (t,) . colorful
 
--- Broadcast a message to all players
-announce :: Colorful a => a -> Interactive ()
-announce = send Nothing
-
--- Send a message to a given player
-tell :: Colorful a => Player -> a -> Interactive ()
-tell = send . Just
-
--- Send a message to the active player (or to everyone if no active player)
-say :: Colorful a => a -> Interactive ()
-say = (activePlayer >>=) . flip send 
 
 withActive :: Maybe Player -> Interactive a -> Interactive a
 withActive p (Interactive m) = Interactive (local (\(_,ps) -> (p,ps)) m)
-
--- Locally set an active player
-withPlayer :: Player -> Interactive a -> Interactive a
-withPlayer = withActive . Just
-
--- Locally remove any active player
-public :: Interactive a -> Interactive a
-public = withActive Nothing
-
-
 
 event :: Block -> Interactive Event
 event = Interactive . lift . request
@@ -108,16 +88,8 @@ allPlayers = Interactive (snd<$>ask)
 activePlayer :: Interactive (Maybe Player)
 activePlayer = Interactive (fst<$>ask)
 
-
-lookupPlayer :: Text -> Interactive (Maybe Player)
-lookupPlayer name = do
-    ps <- allPlayers
-    return $ case Prelude.filter ((name `isPrefixOf`) . playerName) ps of
-                [p] -> Just p
-                _  -> Nothing
-
-
-
+say :: Colorful a => a -> Interactive ()
+say m = activePlayer >>= flip send m
 
 within :: Time -> a -> Interactive a -> Interactive a
 within deadline timeout (Interactive (ReaderT action)) = Interactive (ReaderT (\r -> (trap deadline +>> action r))) where

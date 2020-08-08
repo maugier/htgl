@@ -192,6 +192,27 @@ type Game = StateT GameData Play
 every :: (Bounded a, Enum a) => [a]
 every = [minBound .. maxBound]
 
+reshuffleDiscard :: Game ()
+reshuffleDiscard = do
+    announce "Draw deck empty. Shuffling the discard pile."
+    discarded <- use discardPile
+    shuffled <- shuffle discarded
+    drawPile %= (++ shuffled)
+    discardPile .= []
+    
+
+drawCards :: Int -> Game [Card]
+drawCards 0 = return []
+drawCards n = do
+    remaining <- use (drawPile . to length)
+    when (remaining <= n) reshuffleDiscard
+    drawPile %%= (\pile -> (take n pile, drop n pile))
+
+discard :: [Card] -> Game ()
+discard cards = discardPile %= (++cards)
+            
+
+
 {- Game setup, and victory conditions -}
 
 -- We initialize the game data by creating a map of starting players,
@@ -255,10 +276,10 @@ turnOrder = do
 
 -- let a player choose a role among those available, and pass the rest
 pickRole :: [Role] -> Player -> Game [Role]
-pickRole available p = do
-    tell p "Choose your role for this turn."
-    pick <- p `chooses` available
-    tell p $ "You're now " <> colorful pick
+pickRole available p = (`with` p) $ do
+    say "Choose your role for this turn."
+    pick <- choose available
+    say $ "You're now " <> colorful pick
     (players . ix p . role) .= Just pick
     return (available \\ [pick])
     
@@ -297,43 +318,80 @@ phase1 = do
 
     -- If there is a 7th player, let him chose between the last card and the secretly
     -- excluded card
-    mapM (pickRole (sort (last ++ excludedHidden))) (drop 6 players)
+    foldM pickRole (sort (last ++ excludedHidden)) (drop 6 players)
 
     return ()
+
+whois :: Role -> Game (Maybe Player)
+whois who = preuse ((players . itraversed <. (role . filtered (== Just who))) . withIndex . _1)
 
 -- Check if any player has a given role, and if so, reveal it to the table.
 reveal :: Role -> Game (Maybe Player)
 reveal who = do
-    player <- preuse ((players . itraversed <. (role . filtered (== Just who))) . withIndex . _1)
+    player <- whois who
     announce $ case player of
         Just someone -> colorful someone <> " is the " <> colorful who <> "!"
         Nothing -> "nobody is the " <> colorful who
     return player
 
     
+data Action = GetGold | DrawCards | UseSpecial
+    deriving (Show, Read, Eq, Ord)
+
+instance Colorful Action where
+    colorful = cshow
+
+data WizAction = Exchange | Steal
+    deriving (Show, Read, Eq, Ord)
+
+instance Colorful WizAction where
+    colorful Exchange = Exchange `showStyle` green
+    colorful Steal    = Steal `showStyle` red
 
 specialAction :: Role -> Game ()
 specialAction Assassin = do
     say "Who do you want to kill ?"
     target <- choose (every \\ [Assassin])
-    announce $ "The " <> Assassin <> " kills the " <> target <> "!"
-    assassinVictim .= target
+    announce $ "The " <> colorful Assassin <> " kills the " <> colorful target <> "!"
+    assassinVictim .= Just target
 
 specialAction Thief = do
     say "Who do you want to steal from ?"
     target <- choose (every \\ [Assassin,Thief])
-    announce $ "The " <> Thief <> " steals from the " <> target <> "!"
-    thiefVictim .= target
+    announce $ "The " <> colorful Thief <> " steals from the " <> colorful target <> "!"
+    thiefVictim .= Just target
 specialAction Wizard = do
+    Just p <- activePlayer
     say "Do you want to discard or exchange ?"
-    act <- choose ["discard","exchange"]
+    act <- choose [Exchange,Steal]
     case act of
-        "discard" -> _
-        "exchange" -> _
+        Exchange -> do
+            Just p <- activePlayer
+            oldHand <- use (players . ix p . hand) 
+            let amount = length oldHand
+            discard oldHand
+            newHand <- drawCards amount
+            players . ix p . hand .= newHand
+
+
+        Steal -> do
+            target <- choosePlayer
+            hand1 <- use (players . ix target . hand)
+            hand2 <- use (players . ix p . hand)
+            players . ix target . hand .= hand2
+            players . ix p . hand .= hand1
 
 
 phase2Turn :: Role -> Player -> Game ()
-phase2Turn = undefined
+phase2Turn role player = do
+    robbed <- use thiefVictim
+    when (robbed == Just role) $ do
+        Just thief <- whois Thief
+        money <- use (players . ix player . gold)
+        players . ix player . gold .= 0
+        players . ix thief . gold += money
+
+        
 
 phase2 :: Game ()
 phase2 = do
@@ -341,12 +399,17 @@ phase2 = do
     announce "Action phase starts!"
 
     forM_ every $ \role -> do
-        player <- reveal role
+        killed <- use assassinVictim
+        if (killed == Just role)
+            then announce $ "The " <> colorful role <> " has been killed and skips their turn."
+            else do
+                player <- reveal role
 
-        case player of
-            Nothing -> return Nothing
-            Just player -> phase2Turn role player
+                case player of
+                    Nothing -> return ()
+                    Just player -> phase2Turn role player
     
+    announce "Action phase is over."
 
     
 
