@@ -17,8 +17,8 @@ alice = Player (pack "alice")
 bob = Player (pack "bob")
 charlie = Player (pack "charlie")
 
-testData :: GameData
-testData = GameData ps alice Nothing deck where
-    ps = M.fromList [ (alice, role .~ Just King $ startingPlayer)
-                    , (bob, role .~ Just Wizard $ startingPlayer)
-                    , (charlie, role .~ Just Thief $ startingPlayer)]
+--testData :: GameData
+--testData = GameData ps alice Nothing deck where
+--    ps = M.fromList [ (alice, role .~ Just King $ startingPlayer)
+--                    , (bob, role .~ Just Wizard $ startingPlayer)
+--                    , (charlie, role .~ Just Thief $ startingPlayer)]

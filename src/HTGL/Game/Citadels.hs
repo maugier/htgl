@@ -192,6 +192,9 @@ type Game = StateT GameData Play
 every :: (Bounded a, Enum a) => [a]
 every = [minBound .. maxBound]
 
+unwrap :: Text -> Maybe a -> Game a
+unwrap reason = maybe (raise reason) return
+
 reshuffleDiscard :: Game ()
 reshuffleDiscard = do
     announce "Draw deck empty. Shuffling the discard pile."
@@ -322,8 +325,12 @@ phase1 = do
 
     return ()
 
+
 whois :: Role -> Game (Maybe Player)
 whois who = preuse ((players . itraversed <. (role . filtered (== Just who))) . withIndex . _1)
+
+whois' :: Role -> Game Player
+whois' = whois >=> unwrap "inexistant player"
 
 -- Check if any player has a given role, and if so, reveal it to the table.
 reveal :: Role -> Game (Maybe Player)
@@ -386,8 +393,8 @@ phase2Turn :: Role -> Player -> Game ()
 phase2Turn role player = do
     robbed <- use thiefVictim
     when (robbed == Just role) $ do
-        Just thief <- whois Thief
-        money <- use (players . ix player . gold)
+        thief <- whois' Thief
+        money <- preuse (players . ix player . gold) >>= unwrap "missing player"
         players . ix player . gold .= 0
         players . ix thief . gold += money
 

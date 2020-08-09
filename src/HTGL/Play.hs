@@ -33,6 +33,7 @@ module HTGL.Play
     , tryRead
     , choose
     , choosePlayer
+    , cshow
     ) where
 
 import HTGL.Color
