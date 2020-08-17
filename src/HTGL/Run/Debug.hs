@@ -9,6 +9,7 @@ import HTGL.Color
 import HTGL.Color.ANSI
 import Data.Functor.Identity (runIdentity)
 import Data.Text (pack, strip)
+import Control.Concurrent
 import Control.Monad
 import Control.Monad.Random (runRandT)
 import Control.Monad.Reader (runReaderT)
@@ -23,7 +24,7 @@ repeatRead = getLine >>= maybe (putStrLn "invalid input." >> repeatRead) return 
 
 
 displayConsole :: Announce -> Effect' IO ()
-displayConsole (dest, message) = lift . colorPutStrLn $ line where
+displayConsole (dest, message) = lift (colorPutStrLn line >> threadDelay 1000000) where
     line = case dest of
             Nothing -> "*** " <> message
             (Just player) -> colorful player <> ": " <> message

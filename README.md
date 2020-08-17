@@ -24,7 +24,7 @@ for broadcasting public game messages and sending private messages to the correc
 the game requests input, the driver is also responsible for passing user input to the game
 (or the lack thereof, if a timeout has been reached)
 
-Sample drivers live under `HTGL.Driver.*`.
+Sample drivers live under `HTGL.Run.*`.
 
 
 
