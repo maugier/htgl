@@ -31,5 +31,8 @@ instance Num Dice where
     (Dice a) + (Dice b) = Dice ((+) <$> a <*> b)
     (Dice a) * (Dice b) = Dice $ do
         r <- a
-        sum <$> sequence (replicate r b)
+        sum <$> replicateM r b
     fromInteger n = Dice (return (fromInteger n))
+    negate (Dice d) = Dice (negate <$> d)
+    abs (Dice d) = Dice (abs <$> d)
+    signum (Dice d) = Dice (signum <$> d)
